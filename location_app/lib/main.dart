@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:location_app/view/new_view.dart';
-
+import 'package:location_app/screens/map_screens.dart';
 import 'package:provider/provider.dart';
-import 'package:location_app/view/view_model/main_view_model.dart';
+import 'providers/location_provider.dart';
 
 void main() {
-  runApp(
-    MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => LocationViewModel())],
-      child: const MyApp(),
-    ),
-  );
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -18,12 +13,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Location App',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+    return ChangeNotifierProvider(
+      create: (_) => LocationProvider(),
+      child: MaterialApp(
+        title: 'Location Tracker',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2196F3)),
+          useMaterial3: true,
+          fontFamily: 'Roboto',
+        ),
+        home: const MapScreen(),
       ),
-      home: const LocationView(),
     );
   }
 }
