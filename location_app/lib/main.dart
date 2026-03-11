@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:location_app/screens/map_screens.dart';
 import 'package:provider/provider.dart';
 import 'providers/location_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+    ),
+  );
   runApp(const MyApp());
 }
 
@@ -18,10 +25,16 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Location Tracker',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2196F3)),
-          useMaterial3: true,
-          fontFamily: 'Roboto',
+        theme: ThemeData.dark().copyWith(
+          scaffoldBackgroundColor: const Color(0xFF0D1117),
+          colorScheme: const ColorScheme.dark(
+            primary: Color(0xFF00D4FF),
+            surface: Color(0xFF161B22),
+          ),
+          snackBarTheme: const SnackBarThemeData(
+            backgroundColor: Color(0xFF161B22),
+            contentTextStyle: TextStyle(color: Colors.white),
+          ),
         ),
         home: const MapScreen(),
       ),

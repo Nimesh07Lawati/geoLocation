@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:location_app/model/location_mode.dart';
 
 class LocationProvider extends ChangeNotifier {
@@ -12,25 +11,23 @@ class LocationProvider extends ChangeNotifier {
   String? _errorMessage;
   StreamSubscription<Position>? _positionStream;
   final List<LatLng> _routePoints = [];
-  final Set<Polyline> _polylines = {};
-  GoogleMapController? _mapController;
 
   // Getters
   LocationModel? get currentLocation => _currentLocation;
   bool get isTracking => _isTracking;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  List<LatLng> get routePoints => _routePoints;
-  Set<Polyline> get polylines => _polylines;
+  List<LatLng> get routePoints => List.unmodifiable(_routePoints);
 
-  void setMapController(GoogleMapController controller) {
-    _mapController = controller;
-  }
+  // Notifier for map centering
+  LatLng? _latestLatLng;
+  LatLng? get latestLatLng => _latestLatLng;
 
   Future<bool> _checkPermissions() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      _errorMessage = 'Location services are disabled. Please enable them.';
+      _errorMessage =
+          'Location services are disabled. Please enable them in settings.';
       notifyListeners();
       return false;
     }
@@ -47,7 +44,7 @@ class LocationProvider extends ChangeNotifier {
 
     if (permission == LocationPermission.deniedForever) {
       _errorMessage =
-          'Location permissions permanently denied. Please enable in settings.';
+          'Location permissions permanently denied. Enable in app settings.';
       notifyListeners();
       return false;
     }
@@ -68,12 +65,12 @@ class LocationProvider extends ChangeNotifier {
     }
 
     try {
-      Position position = await Geolocator.getCurrentPosition(
+      final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
-      _updateLocation(position);
+      _applyPosition(position);
     } catch (e) {
-      _errorMessage = 'Failed to get location: $e';
+      _errorMessage = 'Could not get location: $e';
     }
 
     _isLoading = false;
@@ -87,23 +84,22 @@ class LocationProvider extends ChangeNotifier {
     _isTracking = true;
     _errorMessage = null;
     _routePoints.clear();
-    _polylines.clear();
     notifyListeners();
 
     const locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
-      distanceFilter: 5, // Update every 5 meters
+      distanceFilter: 3,
     );
 
     _positionStream =
         Geolocator.getPositionStream(locationSettings: locationSettings).listen(
-          (Position position) {
-            _updateLocation(position);
-            _addRoutePoint(LatLng(position.latitude, position.longitude));
-            _animateCamera(LatLng(position.latitude, position.longitude));
+          (position) {
+            _applyPosition(position);
+            _routePoints.add(LatLng(position.latitude, position.longitude));
+            notifyListeners();
           },
-          onError: (error) {
-            _errorMessage = 'Location stream error: $error';
+          onError: (e) {
+            _errorMessage = 'Tracking error: $e';
             notifyListeners();
           },
         );
@@ -116,7 +112,12 @@ class LocationProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _updateLocation(Position position) {
+  void clearRoute() {
+    _routePoints.clear();
+    notifyListeners();
+  }
+
+  void _applyPosition(Position position) {
     _currentLocation = LocationModel(
       latitude: position.latitude,
       longitude: position.longitude,
@@ -125,36 +126,7 @@ class LocationProvider extends ChangeNotifier {
       speed: position.speed,
       timestamp: position.timestamp,
     );
-    notifyListeners();
-  }
-
-  void _addRoutePoint(LatLng point) {
-    _routePoints.add(point);
-    _polylines.clear();
-    if (_routePoints.length > 1) {
-      _polylines.add(
-        Polyline(
-          polylineId: const PolylineId('route'),
-          points: List.from(_routePoints),
-          color: const Color(0xFF2196F3),
-          width: 4,
-          patterns: [],
-        ),
-      );
-    }
-    notifyListeners();
-  }
-
-  Future<void> _animateCamera(LatLng target) async {
-    await _mapController?.animateCamera(
-      CameraUpdate.newCameraPosition(CameraPosition(target: target, zoom: 17)),
-    );
-  }
-
-  void clearRoute() {
-    _routePoints.clear();
-    _polylines.clear();
-    notifyListeners();
+    _latestLatLng = LatLng(position.latitude, position.longitude);
   }
 
   @override

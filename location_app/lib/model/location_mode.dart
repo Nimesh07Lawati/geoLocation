@@ -15,7 +15,12 @@ class LocationModel {
     required this.timestamp,
   });
 
+  String get latStr => latitude.toStringAsFixed(6);
+  String get lngStr => longitude.toStringAsFixed(6);
+  String get speedKmh =>
+      speed != null ? '${(speed! * 3.6).toStringAsFixed(1)} km/h' : '0.0 km/h';
+  String get accuracyStr => '±${accuracy.toStringAsFixed(1)}m';
+
   @override
-  String toString() =>
-      'Lat: ${latitude.toStringAsFixed(6)}, Lng: ${longitude.toStringAsFixed(6)}';
+  String toString() => '$latStr, $lngStr';
 }
